@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaquaNav MVP</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Overlay de Carregamento -->
+    <div id="overlayCarregamento"
+        class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 z-3 d-flex flex-column justify-content-center align-items-center text-white"
+        style="z-index: 1060 !important;">
+        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <h4 class="mt-4 fw-bold">Identificando sua localização...</h4>
+    </div>
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar navbar-dark bg-saquanav fixed-top shadow-sm">
+        <div class="container-fluid d-flex justify-content-between align-items-center gap-2 flex-nowrap"
+            style="overflow-x: auto;">
+            <!-- 1. Logo à Esquerda -->
+            <a class="navbar-brand m-0 py-0 d-flex align-items-center flex-shrink-0" href="#" id="btnIrParaIgreja">
+                <img src="logo.png" alt="SaquaNav Logo" id="logoSite"
+                    style="max-height: 40px; width: auto; object-fit: contain;">
+            </a>
+
+            <!-- 2. Botões Alinhados à Direita com Espaçamento Mínimo -->
+            <div class="d-flex align-items-stretch gap-2 flex-shrink-0 ms-auto">
+                <a class="btn btn-saquanav fw-bold px-3 shadow-sm d-flex align-items-center justify-content-center"
+                    href="#" id="btnMinhaLocalizacao" style="white-space: nowrap;">
+                    📍 Localização
+                </a>
+                <button
+                    class="btn btn-saquanav fw-bold px-3 shadow-sm d-flex align-items-center justify-content-center m-0"
+                    type="button" data-bs-toggle="offcanvas" data-bs-target="#filtrosOffcanvas"
+                    style="white-space: nowrap;">
+                    Filtros
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Container do Mapa -->
+    <div id="mapa"></div>
+
+    <!-- Menu Lateral de Filtros e Favoritos (Offcanvas) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="filtrosOffcanvas" aria-labelledby="filtrosOffcanvasLabel">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title fw-bold" id="filtrosOffcanvasLabel">Seleção de Marcadores</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <h6>Filtros</h6>
+            <div class="form-check">
+                <input class="form-check-input filtro-checkbox" type="checkbox" value="Trânsito" id="filtroTransito"
+                    checked>
+                <label class="form-check-label" for="filtroTransito">🚗 Trânsito</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input filtro-checkbox" type="checkbox" value="Evento" id="filtroEvento"
+                    checked>
+                <label class="form-check-label" for="filtroEvento">🎉 Evento</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input filtro-checkbox" type="checkbox" value="Incidente" id="filtroIncidente"
+                    checked>
+                <label class="form-check-label" for="filtroIncidente">⚠️ Incidente</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input filtro-checkbox" type="checkbox" value="Obras" id="filtroObras" checked>
+                <label class="form-check-label" for="filtroObras">🚧 Obras</label>
+            </div>
+            <div class="form-check mt-2">
+                <input class="form-check-input filtro-checkbox" type="checkbox" value="Favorito" id="filtroFavoritos"
+                    checked>
+                <label class="form-check-label text-danger fw-bold" for="filtroFavoritos">❤️ Favoritos</label>
+            </div>
+
+            <hr>
+            <h6>Favoritos Salvos</h6>
+            <ul class="list-group" id="listaFavoritos">
+                <!-- Favoritos injetados aqui -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modal de Relatório -->
+    <div class="modal fade" id="modalRelatorio" tabindex="-1" aria-labelledby="modalRelatorioLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-saquanav text-white border-bottom border-secondary">
+                    <h5 class="modal-title" id="modalRelatorioLabel">Novo Pin</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formRelatorio">
+                        <input type="hidden" id="relatorioLat">
+                        <input type="hidden" id="relatorioLng">
+                        <input type="hidden" id="editFavoritoId">
+                        <div class="mb-3">
+                            <label for="tipoRelatorio" class="form-label">Escolha um marcador</label>
+                            <select class="form-select" id="tipoRelatorio" required>
+                                <option value="" disabled selected>Selecione um tipo...</option>
+                                <option value="Trânsito">🚗 Trânsito</option>
+                                <option value="Evento">🎉 Evento</option>
+                                <option value="Incidente">⚠️ Incidente</option>
+                                <option value="Obras">🚧 Obras</option>
+                                <option value="Favorito">🔘 Favorito</option>
+                            </select>
+                        </div>
+
+                        <!-- Container Dinâmico para Favorito -->
+                        <div id="containerFavorito" class="mb-3 d-none slide-down">
+                            <label class="form-label">Detalhes do Favorito</label>
+                            <div class="row g-2">
+                                <div class="col-3">
+                                    <select class="form-select text-center fs-5" id="emojiFavorito">
+                                        <!-- Marcações Rápidas -->
+                                        <option value="🔘">🔘</option>
+                                        <option value="❤️">❤️</option>
+                                        <option value="⭐">⭐</option>
+                                        <option value="🌟">🌟</option>
+                                        <option value="📌">📌</option>
+                                        <option value="🔖">🔖</option>
+
+                                        <!-- Locais e Estruturas -->
+                                        <option value="🏠">🏠</option>
+                                        <option value="💼">💼</option>
+
+                                        <!-- Alimentação e Compras -->
+                                        <option value="🍔">🍔</option>
+                                        <option value="☕">☕</option>
+                                        <option value="🍽️">🍽️</option>
+                                        <option value="🛒">🛒</option>
+
+                                        <!-- Ferramentas e Outros -->
+                                        <option value="🖥️">🖥️</option>
+                                        <option value="🛠️">🛠️</option>
+                                        <option value="🏆">🏆</option>
+                                        <option value="⚽">⚽</option>
+                                        <option value="🔥">🔥</option>
+                                    </select>
+                                </div>
+                                <div class="col-9">
+                                    <input type="text" class="form-control" id="tituloFavorito"
+                                        placeholder="Ex: Casa, Trabalho, Café...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="enderecoRelatorio" class="form-label">Endereço (Confirmar/Editar)</label>
+                            <input type="text" class="form-control fw-bold" id="enderecoRelatorio"
+                                placeholder="Buscando endereço...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Foto do Local (Opcional)</label>
+
+                            <!-- Botão Customizado de Câmera/Galeria -->
+                            <label for="imagemRelatorio"
+                                class="btn btn-outline-primary w-100 fw-bold d-flex justify-content-center align-items-center gap-2">
+                                <span style="font-size: 1.5rem;">📸</span> Acionar Câmera / Galeria
+                            </label>
+                            <!-- Input original escondido -->
+                            <input class="d-none" type="file" id="imagemRelatorio" accept="image/*"
+                                capture="environment">
+
+                            <div id="previewContainer" class="mt-2 d-none text-center">
+                                <img id="previewImagem" src="" class="img-fluid rounded shadow-sm"
+                                    style="max-height: 150px;" alt="Pré-visualização">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descRelatorio" class="form-label">Descrição (Opcional)</label>
+                            <textarea class="form-control" id="descRelatorio" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100 mb-2" id="btnSalvarRelatorio">Criar Pin</button>
+                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS do Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JS do Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Lógica da Aplicação -->
+    <script src="app.js"></script>
+</body>
+
+</html>
